@@ -6,7 +6,7 @@ class QuestionType(models.Model):
 
 class Question(models.Model):
     question_type = models.ForeignKey(QuestionType, on_delete=models.CASCADE)
-    question_text = models.CharField(max_length=500)
+    question_text = models.TextField()
 
 class Answer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
