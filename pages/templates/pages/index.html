@@ -22,12 +22,12 @@
      <ul>
     {% for question in question_list %}
         <p>
-        <div class="alert alert-danger" role="alert"><span href="/pages/{{ question.id }}/">{{ question.question_text }}</span></div>
+        <div class="alert alert-danger" role="alert"><span href="/pages/{{ question.id }}/">{{ question.question_text | safe }}</span></div>
         {% if answer_list %}
             {% for answer in answer_list %}
                 {% if answer.question.id == question.id %}
                 <div class="card">
-                    <div class="card-body" alert-primary" role="alert"><a href="/pages/{{ answer.id }}/">{{ answer.answer_text }}</a></div>
+                    <div class="card-body" alert-primary" role="alert"><a href="/pages/{{ answer.id }}/">{{ answer.answer_text | safe }}</a></div>
                 </div>
                 {% endif %}
             {% endfor %}
