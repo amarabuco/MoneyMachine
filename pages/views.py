@@ -23,7 +23,7 @@ def aplicacao(request):
 
 def page(request,x):
     page_list = QuestionType.objects.all()
-    question_list = Question.objects.filter(question_type=x)
+    question_list = Question.objects.filter(question_type=x).order_by('id')
     question_list_id = Question.objects.filter(question_type=x).values_list('id')
     answer_list = Answer.objects.filter(question__in=question_list_id)   
     template = loader.get_template('pages/index.html')
