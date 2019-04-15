@@ -19,7 +19,7 @@ def projeto(request):
     return page(request,3)
 
 def aplicacao(request):
-    return page(request,4)
+    return HttpResponse("Projeto Money Machine.")
 
 def page(request,x):
     page_list = QuestionType.objects.all()

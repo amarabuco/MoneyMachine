@@ -9,6 +9,9 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('pages/', include('pages.urls')),
+    path('pages/Aplicação', include('app.urls')),
+    path('Aplicação', include('app.urls')),
+    path('app/', include('app.urls')),
     path('admin/', admin.site.urls),
     path('', include('pages.urls')),
      path('summernote/', include('django_summernote.urls')),
