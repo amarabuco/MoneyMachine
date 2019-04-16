@@ -7,4 +7,6 @@ urlpatterns = [
     path('index', views.index, name='index'),
     path('aplicacao', views.aplicacao, name='aplicacao'),
     path('Aplicação', views.aplicacao, name='aplicacao'),
+    #path('api', views.api, name='api'),
+    path('<x>/api/', views.api, name='api'),
 ]
