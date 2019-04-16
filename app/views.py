@@ -38,9 +38,9 @@ def api2(request):
 def api(request,x):
     #stock = pd.read_csv("https://query1.finance.yahoo.com/v7/finance/download/VALE3.SA?period1=1552682299&period2=1555360699&interval=1d&events=history&crumb=aMJOzZ4One0")
     if (x == "VALE3SA_2014"):
-        stock = pd.read_csv("app\data\VALE3SA_2014.csv").to_html()
+        stock = pd.read_csv("app/data/VALE3SA_2014.csv").to_html()
     else:
-        stock = pd.read_csv("app\data\VALE3SA_2000.csv").to_html()
+        stock = pd.read_csv("app/data/VALE3SA_2000.csv").to_html()
     template = loader.get_template('app/data.html')
     context = {
         'stock' : stock,
