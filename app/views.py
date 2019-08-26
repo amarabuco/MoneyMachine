@@ -27,9 +27,7 @@ def index(request):
     return HttpResponse("<h1>Application</h1>")
 
 def aplicacao(request):
-    
-
-    return HttpResponse('roludo')
+    return HttpResponseRedirect('/app/filtro')
 
 
 def filtro(request):
