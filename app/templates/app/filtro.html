@@ -1,0 +1,18 @@
+
+{% extends "./base.html" %}
+{% block content %}
+
+<div class="alert alert-primary h5" role="alert">Filtro de Relatório</div>
+
+Ação selecionada: {{acao}}
+<form id="filtro" action="{% url 'filtro' %}" method="post">
+
+    <div class="form-group">
+        {% csrf_token %}
+        {{ form.as_table }}
+        <input class="btn btn-success" type="submit" value="Enviar">
+    </div>
+</form>
+    
+
+{% endblock %}
