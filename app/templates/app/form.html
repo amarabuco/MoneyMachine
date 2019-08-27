@@ -1,0 +1,45 @@
+
+{% extends "./base.html" %}
+{% block content %}
+
+<div class="alert alert-primary h5" role="alert">{{title}} </div>
+
+Ação selecionada: {{acao}}
+<form id="previsao" action="{% url 'previsao' %}" method="post">
+
+
+    <div class="form-group">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input class="btn btn-success" type="submit" value="Enviar">
+    </div>
+</form>
+
+
+<script> 
+
+        $(document).ready(function() {
+        
+           
+        
+            $( "input" ).attr('class','form-control');
+            $( "input[name='Data']" ).attr('class','datepicker form-control');
+        
+            $( function() {
+                $( ".datepicker" ).datepicker({
+                dateFormat: 'yy-mm-dd',
+                dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+                dayNamesMin: ['D','S','T','Q','Q','S','S','D'],
+                dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
+                monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+                monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+                nextText: 'Próximo',
+                prevText: 'Anterior'
+        
+                }); 
+            });
+        
+        })
+        </script>
+    
+{% endblock %}

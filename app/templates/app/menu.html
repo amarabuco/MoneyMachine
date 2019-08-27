@@ -5,24 +5,26 @@
 <div class="container-fluid">
     <div class="alert alert-success" >Ação selecionada: {{acao}}</div>
     <ul class="nav nav-tabs">
+        <li class="nav-item"><a class="nav-link" href="/app/filtro">Filtro</a></li>
         <li class="nav-item"><a class="nav-link" href="/app/data">Dados</a></li>
         <li class="nav-item"><a class="nav-link" href="/app/chart">Gráfico</a></li>
-        <li class="nav-item"><a class="nav-link" href="/app/analysis">Análise</a></li>
         <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Análise</a>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="/app/analysis">Variáveis analíticas</a>
+                    <a class="dropdown-item" href="/app/analysis">Indicadores</a>
                     <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="/app/describe">Descrição</a>
                 </div>
         </li>
         <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Treinamento</a>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="/app/training">Naive Bayes Regression 1</a>
+                    <a class="dropdown-item" href="/app/training">Regressão</a>
                     <div class="dropdown-divider"></div>
+                    <a class="dropdown-item" href="/app/training_log">Classificação</a>
                 </div>
         </li>
-        <li class="nav-item"><a class="nav-link" href="/app/forecast">Previsão</a></li>
+        <li class="nav-item"><a class="nav-link" href="/app/previsao">Previsão</a></li>
     </ul>
 </div>
 <br>

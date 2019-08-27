@@ -2,9 +2,13 @@
 {% extends "./menu.html" %}
 {% block content %}
 
-<h3>{{title}}</h3>
+<h4>{{title}}</h4>
 
-Preço mais alto: {{data}}
+
+{{data}}
+<p>Preço mais alto: {{alta}}</p>
+<p>Preço mais baixo: {{baixa}}</p>
+<p>Amplitude: {{amp}}%</p>
 
 <img src="#" />
 <img src="#" />
@@ -15,7 +19,7 @@ $(document).ready( function () {
 
 
     $('.dataframe').attr('class','table table-striped table-borderless table-hover table-sm responsive');
-    $('.dataframe').css('width','100%');
+    //$('.dataframe').css('width','100%');
 
         $('.table').DataTable(
             {

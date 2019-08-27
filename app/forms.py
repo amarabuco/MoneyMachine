@@ -1,5 +1,13 @@
 from django import forms
 
+class Previsao(forms.Form):
+    Data = forms.DateField()
+    Abertura = forms.DecimalField(max_digits=7,decimal_places=2)
+    Fechamento = forms.DecimalField(max_digits=7,decimal_places=2)
+    Alta = forms.DecimalField(max_digits=7,decimal_places=2)
+    Baixa = forms.DecimalField(max_digits=7,decimal_places=2)
+    Volume = forms.DecimalField(max_digits=12)
+
 class Filtro(forms.Form):
     acao = forms.ChoiceField(label='Ação', choices=(
         ('B3SA3','B3SA3'),

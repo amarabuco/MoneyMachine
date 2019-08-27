@@ -3,17 +3,56 @@
 {% block content %}
 
 
-{{ohlc | safe}}
-<img src="/media/daily.png" />
-<img src="/media/daily_vol.png" />
+
+<div class="card">
+        <div class="card-body">
+          <h5 class="card-title">{{title}}</h5>
+          <h6 class="card-subtitle">Algoritmo: Regressão Logística</h6>
+          <p class="card-text">O objetivo desse treinamento é gerar 
+              um classificador capaz de prever o comportamento da ação no dia seguinte, se vai subir  +1%, descer -1% ou manter-se entre 1% e - 1%, 
+              com base nos preços e volume do dia.</p>
+        </div>
+      </div>
+
+<div class="alert alert-info">Métricas</div>
+<ul>
+    <li>Accuracy: {{mae}}</li>
+    <li>Precision: {{mse}}</li>
+    <li>Recall: {{r2}}</li>
+</ul>
+
+<div class="alert alert-info">Base de dados</div>
+{{base | safe }}
+
+<div class="alert alert-info">Classificação</div>
+{{data | safe }}
+
+<div class="alert alert-info">Probabilidades</div>
+{{prob | safe }}
+
+<div class="alert alert-info">Gráficos</div>
+<img src="/media/hist.png" />
+<img src="/media/forecast.png" />
+
 
 <script>
 $(document).ready( function () {
 
 
     $('.dataframe').attr('class','table table-striped table-borderless table-hover table-sm responsive');
-    $('.dataframe').css('width','100%');
+    //$('.dataframe').css('width','100%');
 
+    
+    if($('td').text() == '1'){$(this).attr('class','bg-success');} 
+    if($('td').text() == '0'){$(this).attr('class','bg-light');} 
+    if($('td').text() == '-1'){$(this).attr('class','bg-danger');} 
+
+    $('td').each(function() {
+        if($(this).text() == '1'){$(this).attr('class','bg-success');} 
+        if($(this).text() == '0'){$(this).attr('class','bg-light');} 
+        if($(this).text() == '-1'){$(this).attr('class','bg-danger');} 
+            });
+    
         $('.table').DataTable(
             {
         "order": [[ 0, "desc" ]],
