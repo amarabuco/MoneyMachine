@@ -6,7 +6,7 @@
 <div class="card">
         <div class="card-body">
           <h5 class="card-title">{{title}}</h5>
-          <h6 class="card-subtitle mb-2 text-muted">Algoritmo: Regressão com Naive Bayes</h6>
+          <h6 class="card-subtitle mb-2 text-muted">Algoritmo(s):{{modelo}}</h6>
           <p class="card-text">O objetivo desse treinamento é gerar 
               um regressor capaz de prever os preços máximos e mínimos, determinando assim a janela de negociação para o dia seguinte,
               com base nos preços e volume do dia.</p>
@@ -24,10 +24,19 @@
     {{base | safe }}
 -->
 
-<p>Previsão</p>
+<div class="card">
+        <div class="card-header">Parâmetros</div>
+        <div class="card-body">
+          <p class="card-text">{{params}}</p>
+        </div>
+</div>
+<br>
+
+<div class="alert alert-info">Previsão</div>
 {{data | safe }}
 
-<p>Gráficos</p>
+
+<div class="alert alert-info">Gráficos</div>
 <img src="/media/hist_reg.png" />
 <img src="/media/forecast_reg.png" />
 

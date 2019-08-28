@@ -7,7 +7,7 @@
 <div class="card">
         <div class="card-body">
           <h5 class="card-title">{{title}}</h5>
-          <h6 class="card-subtitle">Algoritmo: Regressão Logística</h6>
+          <h6 class="card-subtitle">Algoritmo: {{modelo}}</h6>
           <p class="card-text">O objetivo desse treinamento é gerar 
               um classificador capaz de prever o comportamento da ação no dia seguinte, se vai subir  +1%, descer -1% ou manter-se entre 1% e - 1%, 
               com base nos preços e volume do dia.</p>
@@ -23,6 +23,15 @@
 
 <div class="alert alert-info">Base de dados</div>
 {{base | safe }}
+
+
+<div class="card">
+        <div class="card-header">Parâmetros</div>
+        <div class="card-body">
+          <p class="card-text">{{params}}</p>
+        </div>
+</div>
+<br>
 
 <div class="alert alert-info">Classificação</div>
 {{data | safe }}

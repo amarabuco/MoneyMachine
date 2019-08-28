@@ -11,7 +11,7 @@
         <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Análise</a>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="/app/analysis">Indicadores</a>
+                    <a class="dropdown-item" href="/app/candle">Candlesticks</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="/app/describe">Descrição</a>
                 </div>
@@ -19,12 +19,18 @@
         <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Treinamento</a>
                 <div class="dropdown-menu">
-                    <a class="dropdown-item" href="/app/modelo">Modelo</a>
+
+                    <a class="dropdown-item" href="/app/training/NB">Regressão - Naive Bayes</a>
+                    <a class="dropdown-item" href="/app/training/svr">Regressão - SVR</a>
+                    <a class="dropdown-item" href="/app/training/ada">Regressão - ADA boost</a>
+                    <a class="dropdown-item" href="/app/training/GB">Regressão - Gradiente boost</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="/app/training">Regressão</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="/app/training_log/rl">Classificação - RegLog</a>
+                    <a class="dropdown-item" href="/app/training_log/rl">Classificação - Naive Bayes</a>
                     <a class="dropdown-item" href="/app/training_log/knn">Classificação - KNN</a>
+                    <a class="dropdown-item" href="/app/training_log/knn">Classificação - SVC</a>
+                    <a class="dropdown-item" href="/app/training_log/knn">Classificação - ADA boost</a>
+                    <a class="dropdown-item" href="/app/training_log/vc">Classificação - Voting</a>
+                    <a class="dropdown-item" href="/app/training_log/neural">Classificação - Neural</a>
                 </div>
         </li>
         <li class="nav-item"><a class="nav-link" href="/app/previsao">Previsão</a></li>

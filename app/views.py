@@ -13,15 +13,26 @@ import matplotlib.pyplot as plt
 from mpl_finance import candlestick_ohlc
 
 #Machine Learning
-from sklearn import linear_model
 from sklearn import preprocessing
-from sklearn.svm import LinearSVC
-from sklearn.multioutput import MultiOutputRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error,mean_squared_error,explained_variance_score, r2_score
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.utils.multiclass import unique_labels
+from sklearn.multioutput import MultiOutputRegressor
+##regressão
+from sklearn import svm
+from sklearn import linear_model
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostRegressor
+#from sklearn.ensemble import VotingRegressor
+##classificação
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.neural_network import MLPClassifier
 
 #python
 import pickle
@@ -123,6 +134,38 @@ def data(request):
     return render(request, 'app/data.html', context )
     #return HttpResponse(data)
 
+def candle(request):
+    acao = request.session['acao'] 
+    #bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+    bolsa = pd.read_csv("app/data/bolsa.csv").groupby('Codigo')
+    dados = bolsa.get_group(acao)
+    date = pd.Series(dados.index)
+    #date = date.apply(lambda x: pd.to_datetime(x))
+    date = dados['Date']
+    open = dados['Open']
+    close = dados['Close']
+    high = dados['High']
+    low = dados['Low']
+    dados['index'] = dados.index
+    #vol = preprocessing.MinMaxScaler().fit_transform(np.array([dados['Volume']]))
+    #vol = preprocessing.MinMaxScaler().fit_transform([dados['Date'],dados['Volume']])
+    vol = dados['Volume']
+    ohlc= np.array(dados[['index','Open', 'High', 'Low','Close']])
+    #ohlc =ohlc.tail(60).to_html()
+    ohlc =ohlc
+    
+    
+    f1, ax = plt.subplots(figsize = (15,10))
+    candlestick_ohlc(ax, ohlc, width=1, colorup='red', colordown='blue')
+    plt.grid(True)
+    plt.savefig("media/candle.png")
+    
+    context = {
+        'ohlc': ohlc,
+        'acao': acao
+    }
+   
+    return render(request, 'app/candle.html', context )
 
 def chart(request):
     acao = request.session['acao'] 
@@ -136,19 +179,20 @@ def chart(request):
     close = dados['Close']
     high = dados['High']
     low = dados['Low']
+    dados['index'] = dados.index
     #vol = preprocessing.MinMaxScaler().fit_transform(np.array([dados['Volume']]))
     #vol = preprocessing.MinMaxScaler().fit_transform([dados['Date'],dados['Volume']])
     vol = dados['Volume']
-    ohlc= dados[['Date','Open', 'High', 'Low','Close']].copy()
+    ohlc= np.array(dados[['index','Open', 'High', 'Low','Close']])
     #ohlc =ohlc.tail(60).to_html()
-    ohlc =ohlc.tail(60)
-    """
+    ohlc =ohlc
+    
+    
     f1, ax = plt.subplots(figsize = (10,5))
     candlestick_ohlc(ax, ohlc, width=.6, colorup='white', colordown='black')
     plt.grid(True)
-    plt.savefig("media/daily.png")
-    """
-   
+    plt.savefig("media/candle.png")
+    
    
     plt.figure(figsize=(10,2.5))
     plt.xlabel("Data")
@@ -213,7 +257,7 @@ def describe(request):
     }
     return render(request, 'app/data.html', context )
 
-def training(request):
+def training(request,model):
     acao = request.session['acao'] 
     bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
     dados = bolsa.get_group(acao)
@@ -229,7 +273,30 @@ def training(request):
     regr.fit(X_train,y_train)    
     
     #trainingmulti
-    regr_multi = MultiOutputRegressor(linear_model.BayesianRidge())
+    if (model == 'adr'):
+        modelo = "Automatic Relevance Determination Regression"
+        #regr_multi = MultiOutputRegressor(svm.SVR())
+        regr_multi = MultiOutputRegressor(linear_model.ARDRegression(compute_score=True))
+    elif (model == 'ada'):
+        modelo = "Ada Regressor"
+        regr_multi = MultiOutputRegressor(AdaBoostRegressor(random_state=0, n_estimators=100))
+    elif (model == 'GB'):
+        modelo = "GradientBoostingRegressor"
+        regr_multi =  MultiOutputRegressor(GradientBoostingRegressor(random_state=1, n_estimators=10))
+    else:
+        modelo = "LinerRegression com Bayesian Ridge" 
+        regr_multi = MultiOutputRegressor(linear_model.BayesianRidge())
+        
+    """
+    # import votingregressor não funciona, precisa atualizar o sklearn
+    elif (model == 'VR'):
+        modelo = "Voting Regressor com GradientBoostingRegressor, RandomForestRegressor, LinearRegression"
+        reg1 =  MultiOutputRegressor(GradientBoostingRegressor(random_state=1, n_estimators=10))
+        reg2 =  MultiOutputRegressor(RandomForestRegressor(random_state=1, n_estimators=10))
+        reg3 =  MultiOutputRegressor(LinearRegression())
+        regr_multi = VotingRegressor(estimators=[('gb', reg1), ('rf', reg2), ('lr', reg3)])
+    """
+    
     regr_multi.fit(X_train,Ytrain)
     Y_PRED = regr_multi.predict(X_test)
     real = pd.DataFrame(Ytest)
@@ -255,14 +322,9 @@ def training(request):
     erro = np.array(data['diferenca'])
     data = data.to_html()
     #data = previsto.head().to_html()
-    
+    """
     
     #metrics
-    mae = mean_absolute_error(y_test, y_pred)
-    mse = mean_squared_error(y_test, y_pred)
-    ev = explained_variance_score(y_test, y_pred, multioutput='uniform_average')
-    r2 = r2_score(y_test, y_pred)
-    """
     mae = mean_absolute_error(Ytest, Y_PRED)
     mse = mean_squared_error(Ytest, Y_PRED)
     ev = explained_variance_score(Ytest, Y_PRED, multioutput='uniform_average')
@@ -289,9 +351,20 @@ def training(request):
     plt.hist(erro,bins=5)
     plt.savefig("media/hist_reg.png")
     
+    #params
+    params = regr.get_params()
     
     #persistence
-    dump(regr_multi, 'app/learners/'+acao+'_NB.joblib')
+    if (model == 'VR'):
+        dump(regr, 'app/learners/'+acao+'_VR.joblib')
+    elif (model == 'GB'):
+        dump(regr, 'app/learners/'+acao+'_GB.joblib')
+    if (model == 'adr'):    
+        dump(regr, 'app/learners/'+acao+'_ADR.joblib')
+    elif (model == 'ada'): 
+        dump(regr, 'app/learners/'+acao+'_ADAR.joblib')
+    else:
+        dump(regr_multi, 'app/learners/'+acao+'_NB.joblib')
     
     
     context = {
@@ -303,6 +376,8 @@ def training(request):
         'base': base,
         'data' : data,
         'acao' : acao,
+        'modelo': modelo,
+        'params' : params,
         'multi' : Y_PRED[0]
     }
     return render(request, 'app/training.html', context )
@@ -367,9 +442,27 @@ def training_log(request,model):
        
     #training
     if (model == 'knn'):
+        modelo = "KNN"
         regr = KNeighborsClassifier(n_neighbors=5)
+    elif (model == 'svc'):
+        modelo = "Support Vector Classifier"    
+        regr = svm.SVC(gamma='scale')
+    elif (model == 'ada'):
+        modelo = "Ada Classifier"    
+        regr = AdaBoostClassifier(n_estimators=100)
+    elif (model == 'vc'):
+        modelo = "Voting Classifier com LogisticRegression, RandomForestClassifier, GaussianNB" 
+        clf1 = KNeighborsClassifier(n_neighbors=5)
+        clf2 = RandomForestClassifier(n_estimators=50, random_state=0)
+        clf3 = GaussianNB()
+        regr = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3)], voting='soft')
+    elif (model == 'neural'):
+        modelo = 'Multi-layer Perceptron classifier'     
+        #regr = MLPClassifier(solver='adam', learning_rate='invscaling', activation="tanh", alpha=1e-5, hidden_layer_sizes=(200,5), random_state=0)
+        regr = MLPClassifier()
     else:
-        regr = linear_model.LogisticRegression(random_state=0, solver='saga',multi_class='multinomial')
+        modelo = "Gaussian Naive Bayes" 
+        regr = GaussianNB()
         #regr = linear_model.LogisticRegression(random_state=0, solver='lbfgs',multi_class='multinomial')
     regr.fit(X_train,y_train)    
     
@@ -382,9 +475,14 @@ def training_log(request,model):
     
     data = pd.concat([real,previsto],axis=1)
     data = data.to_html()
-    prob = pd.DataFrame(regr.predict_proba(X_test), index=real.index, columns=class_names).to_html()
+    if (model == 'svc' or model == 'vc' ):
+        prob = "Não há resultados"
+    else:
+        prob = pd.DataFrame(regr.predict_proba(X_test), index=real.index, columns=class_names).to_html()
     #data = previsto.head().to_html()
     
+    #params
+    params = regr.get_params()
     
     #metrics
     mae = accuracy_score(y_test, y_pred)
@@ -398,12 +496,8 @@ def training_log(request,model):
     plt.savefig("media/confusion.png")
     
     plt.figure(figsize=(5,5))
-    sober = len(y_test[y_test == 1])
-    sobe = len(y_pred[y_pred == 1])
-    neutror = len(y_test[y_test == 0])
-    neutro = len(y_pred[y_pred == 0])
-    descer = len(y_test[y_test == -1])
-    desce = len(y_pred[y_pred == -1])
+    sober, neutror, descer  = len(y_test[y_test == 1]), len(y_test[y_test == 0]), len(y_test[y_test == -1])
+    sobe, neutro, desce = len(y_pred[y_pred == 1]), len(y_pred[y_pred == 0]), len(y_pred[y_pred == -1])
     #grafico = pd.DataFrame({'desce':desce,'neutro':neutro,'sobe':sobe}, index=['classes'], columns=class_names)
     grafico_real = [descer,neutror,sober]
     grafico = [desce,neutro,sobe]
@@ -422,8 +516,16 @@ def training_log(request,model):
     #persistence
     if (model == 'knn'):
         dump(regr, 'app/learners/'+acao+'_KNN.joblib')
+    elif (model == 'svc'):    
+        dump(regr, 'app/learners/'+acao+'_SVC.joblib')
+    elif (model == 'ada'): 
+        dump(regr, 'app/learners/'+acao+'_ADA.joblib')
+    elif (model == 'vc'):
+        dump(regr, 'app/learners/'+acao+'_VC.joblib')
+    elif (model == 'neural'):
+        dump(regr, 'app/learners/'+acao+'_neural.joblib')
     else:
-        dump(regr, 'app/learners/'+acao+'_RL.joblib')
+        dump(regr, 'app/learners/'+acao+'_NBC.joblib')
     
     context = {
         'title' : 'Treino Classificação',
@@ -435,6 +537,8 @@ def training_log(request,model):
         'prob': prob,
         'acao' : acao,
         'grafico': grafico,
+        'modelo': modelo,
+        'params' : params,
         'multi' : '-'
     }
     return render(request, 'app/training_log.html', context )
