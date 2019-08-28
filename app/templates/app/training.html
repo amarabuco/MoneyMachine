@@ -3,7 +3,7 @@
 {% block content %}
 
 
-<div class="card" style="width: 18rem;">
+<div class="card">
         <div class="card-body">
           <h5 class="card-title">{{title}}</h5>
           <h6 class="card-subtitle mb-2 text-muted">Algoritmo: Regressão com Naive Bayes</h6>
@@ -18,15 +18,18 @@
     <li>MSE: {{mse}}</li>
     <li>R2: {{r2}}</li>
 </ul>
-<p>Base de dados</p>
-{{base | safe }}
+<!--
+
+    <p>Base de dados</p>
+    {{base | safe }}
+-->
 
 <p>Previsão</p>
 {{data | safe }}
 
 <p>Gráficos</p>
-<img src="/media/hist.png" />
-<img src="/media/forecast.png" />
+<img src="/media/hist_reg.png" />
+<img src="/media/forecast_reg.png" />
 
 
 <script>

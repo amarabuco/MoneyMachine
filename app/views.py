@@ -14,19 +14,21 @@ from mpl_finance import candlestick_ohlc
 
 #Machine Learning
 from sklearn import linear_model
+from sklearn import preprocessing
 from sklearn.svm import LinearSVC
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error,mean_squared_error,explained_variance_score, r2_score
-from sklearn.metrics import accuracy_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.utils.multiclass import unique_labels
 
 #python
 import pickle
 from joblib import dump, load
 
 
-from .forms import Filtro, Previsao
+from .forms import *
 
 # Create your views here.
 def index(request):
@@ -128,11 +130,14 @@ def chart(request):
     bolsa = pd.read_csv("app/data/bolsa.csv").groupby('Codigo')
     dados = bolsa.get_group(acao)
     date = pd.Series(dados.index)
-    date = date.apply(lambda x: pd.to_datetime(x))
+    #date = date.apply(lambda x: pd.to_datetime(x))
+    date = dados['Date']
     open = dados['Open']
     close = dados['Close']
     high = dados['High']
     low = dados['Low']
+    #vol = preprocessing.MinMaxScaler().fit_transform(np.array([dados['Volume']]))
+    #vol = preprocessing.MinMaxScaler().fit_transform([dados['Date'],dados['Volume']])
     vol = dados['Volume']
     ohlc= dados[['Date','Open', 'High', 'Low','Close']].copy()
     #ohlc =ohlc.tail(60).to_html()
@@ -145,23 +150,23 @@ def chart(request):
     """
    
    
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10,2.5))
     plt.xlabel("Data")
     plt.ylabel("Price")
     plt.title(acao)
     plt.plot(close)
-    plt.plot(high)
-    plt.plot(low)
-    plt.grid(True)
+    #plt.plot(high)
+    #plt.plot(low)
+    #plt.grid(True)
     plt.savefig("media/daily.png")
     
     
-    plt.figure(figsize=(10,10))
+    plt.figure(figsize=(10,2.5))
     plt.xlabel("Data")
     plt.ylabel("Vol")
     plt.title('Volume')
-    plt.bar(vol,height=(vol/vol.mean()))
-    plt.grid(True)
+    plt.plot(vol)
+    #plt.grid(True)
     plt.savefig("media/daily_vol.png")
     
     
@@ -214,7 +219,7 @@ def training(request):
     dados = bolsa.get_group(acao)
     X = dados[['Open','High', 'Low','Close','Volume']]
     y = dados['High'].shift(-1).fillna(method='pad')
-    Y = pd.DataFrame({'H+1':dados['High'].shift(-1).fillna(method='pad'),'L+1':dados['Low'].shift(-1).fillna(method='pad')})
+    Y = pd.DataFrame({'Alta_real':dados['High'].shift(-1).fillna(method='pad'),'Baixa_real':dados['Low'].shift(-1).fillna(method='pad')})
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False, random_state=0)
     X_train, X_test, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, shuffle=False, random_state=0)
     base = dados.to_html()
@@ -228,12 +233,13 @@ def training(request):
     regr_multi.fit(X_train,Ytrain)
     Y_PRED = regr_multi.predict(X_test)
     real = pd.DataFrame(Ytest)
-    previsto = pd.DataFrame(Y_PRED, index=Ytest.index, columns=['Alta','Baixa'])
+    previsto = pd.DataFrame(Y_PRED, index=Ytest.index, columns=['Alta_prevista','Baixa_prevista'])
     #real.rename(columns={"High": "real"})
     #previsto = previsto.set_index(real.index)
     data = pd.concat([real,previsto],axis=1)
-    #data['diferenca'] = data['High']-data['previsto']
-    #erro = np.array(data['diferenca'])
+    data['diferenca_alta'] = data['Alta_real']-data['Alta_prevista']
+    data['diferenca_baixa'] = data['Baixa_real']-data['Baixa_prevista']
+    erro = data['diferenca_alta']
     data = data.to_html()
     #data = previsto.head().to_html()
         
@@ -262,7 +268,7 @@ def training(request):
     ev = explained_variance_score(Ytest, Y_PRED, multioutput='uniform_average')
     r2 = r2_score(Ytest, Y_PRED)
     
-    """
+ 
     #chart
     
     plt.figure(figsize=(5,5))
@@ -270,20 +276,20 @@ def training(request):
     plt.ylabel("High")
     plt.title(acao)
     #plt.plot(y_train)
-    plt.grid(True)
-    plt.plot(previsto)
-    plt.plot(y_test)
-    plt.savefig("media/forecast.png")
+    plt.plot(Ytest['Alta_real'])
+    plt.plot(previsto['Alta_prevista'])
+    #plt.grid(True)
+    plt.savefig("media/forecast_reg.png")
     
     
     
     plt.figure(figsize=(5,5))
-    plt.title('Histograma  - Erro')
+    plt.title('Erro Alta (real - prevista)4')
     plt.grid(True)
-    plt.hist(erro,bins=10)
-    plt.savefig("media/hist.png")
+    plt.hist(erro,bins=5)
+    plt.savefig("media/hist_reg.png")
     
-    """
+    
     #persistence
     dump(regr_multi, 'app/learners/'+acao+'_NB.joblib')
     
@@ -345,12 +351,13 @@ def forecast(request):
     
     return render(request, 'app/forecast.html', context )
 
-def training_log(request):
+def training_log(request,model):
     acao = request.session['acao'] 
     bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
     dados = bolsa.get_group(acao)
     dados['var'] = dados['Close'].pct_change()*100
     dados['move'] = [1 if x>0.01 else -1 if x<-0.01 else 0 for x in dados['Close'].pct_change()]
+    class_names = ['desce','neutro','sobe',]
     #dados['movecolor'] = [SafeString('<div style=\"color:green\">1</div>') if x>0.01 else SafeString("<div class=\"btn btn-danger\">-1</div>") if x<-0.01 else SafeString("<div class=\"btn btn-default\">0</div>") for x in dados['Close'].pct_change()]
     X = dados[['Open','High', 'Low','Close','Volume']]
     y = dados['move']
@@ -359,11 +366,11 @@ def training_log(request):
     
        
     #training
-    regr = linear_model.LogisticRegression(random_state=0, solver='saga',multi_class='multinomial')
-    #regr = linear_model.LogisticRegression(random_state=0, solver='lbfgs',multi_class='multinomial')
-    #regr = linear_model.LogisticRegression(random_state=0)
-    #regr = LinearSVC(C=1.0)
-    #regr = KNeighborsClassifier(n_neighbors=9)
+    if (model == 'knn'):
+        regr = KNeighborsClassifier(n_neighbors=5)
+    else:
+        regr = linear_model.LogisticRegression(random_state=0, solver='saga',multi_class='multinomial')
+        #regr = linear_model.LogisticRegression(random_state=0, solver='lbfgs',multi_class='multinomial')
     regr.fit(X_train,y_train)    
     
     #forecast
@@ -374,10 +381,8 @@ def training_log(request):
     #previsto = previsto.set_index(real.index)
     
     data = pd.concat([real,previsto],axis=1)
-    data['diferenca'] = data['move']-data['previsto']
-    erro = np.array(data['diferenca'])
     data = data.to_html()
-    prob = pd.DataFrame(regr.predict_proba(X_test), index=real.index).to_html()
+    prob = pd.DataFrame(regr.predict_proba(X_test), index=real.index, columns=class_names).to_html()
     #data = previsto.head().to_html()
     
     
@@ -385,36 +390,40 @@ def training_log(request):
     mae = accuracy_score(y_test, y_pred)
     mse = precision_score(y_test, y_pred, average='weighted')
     r2 = recall_score(y_test, y_pred, average='weighted')
-    """
-    mae = mean_absolute_error(Ytest, Y_PRED)
-    mse = mean_squared_error(Ytest, Y_PRED)
-    ev = explained_variance_score(Ytest, Y_PRED, multioutput='uniform_average')
-    r2 = r2_score(Ytest, Y_PRED)
     
-    """
-    #chart
+
+    #chart    
+    plot_confusion_matrix(y_test, y_pred, classes=class_names,
+                      title='Matriz de confusão - '+acao)
+    plt.savefig("media/confusion.png")
     
     plt.figure(figsize=(5,5))
-    plt.xlabel("Data")
-    plt.ylabel("High")
+    sober = len(y_test[y_test == 1])
+    sobe = len(y_pred[y_pred == 1])
+    neutror = len(y_test[y_test == 0])
+    neutro = len(y_pred[y_pred == 0])
+    descer = len(y_test[y_test == -1])
+    desce = len(y_pred[y_pred == -1])
+    #grafico = pd.DataFrame({'desce':desce,'neutro':neutro,'sobe':sobe}, index=['classes'], columns=class_names)
+    grafico_real = [descer,neutror,sober]
+    grafico = [desce,neutro,sobe]
+    plt.xlabel("Classe - real x previsto")
+    plt.ylabel("Qtd")
     plt.title(acao)
     #plt.plot(y_train)
+    plt.bar([4,8,12],grafico_real,width=1, tick_label=class_names, color=['darkred','darkblue','darkgreen'])
+    plt.bar([5,9,13],grafico,width=1, tick_label=class_names, color=['red','blue','green'])
+    #plt.plot(previsto['Alta_prevista'])
     #plt.grid(True)
-    plt.plot(previsto)
-    #plt.plot(y_test,y_test[])
-    plt.savefig("media/forecast.png")
-    
-    
-    
-    plt.figure(figsize=(5,5))
-    plt.title('Histograma  - Erro')
-    plt.grid(True)
-    plt.hist(erro,bins=10)
-    plt.savefig("media/hist.png")
+    plt.savefig("media/clf_count.png")
+    #grafico = grafico.to_html()
     
     
     #persistence
-    dump(regr, 'app/learners/'+acao+'_RL.joblib')
+    if (model == 'knn'):
+        dump(regr, 'app/learners/'+acao+'_KNN.joblib')
+    else:
+        dump(regr, 'app/learners/'+acao+'_RL.joblib')
     
     context = {
         'title' : 'Treino Classificação',
@@ -425,6 +434,7 @@ def training_log(request):
         'data' : data,
         'prob': prob,
         'acao' : acao,
+        'grafico': grafico,
         'multi' : '-'
     }
     return render(request, 'app/training_log.html', context )
@@ -484,3 +494,79 @@ def previsao(request):
         }
 
     return render(request, 'app/form.html', context )
+
+def modelo(request):
+    acao = request.session['acao']
+    # if this is a POST request we need to process the form data
+    if request.method == 'POST':
+        # create a form instance and populate it with data from the request:
+        form = Modelo(request.POST)
+        m = request.POST['modelo']
+        return HttpResponse(m)
+
+    # if a GET (or any other method) we'll create a blank form
+    else:
+         
+        form = Modelo()
+        
+        context = {
+            'title':'Dados para previsão',
+            'form': form,
+            'acao': acao
+        }
+
+    return render(request, 'app/form.html', context )
+
+
+def plot_confusion_matrix(y_true, y_pred, classes,
+                          normalize=False,
+                          title=None,
+                          cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    if not title:
+        if normalize:
+            title = 'Normalized confusion matrix'
+        else:
+            title = 'Confusion matrix'
+
+    # Compute confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    # Only use the labels that appear in the data
+    #classes = classes[unique_labels(y_true, y_pred)]
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+    ax.figure.colorbar(im, ax=ax)
+    # We want to show all ticks...
+    ax.set(xticks=np.arange(cm.shape[1]),
+           yticks=np.arange(cm.shape[0]),
+           # ... and label them with the respective list entries
+           xticklabels=classes, yticklabels=classes,
+           title=title,
+           ylabel='True label',
+           xlabel='Predicted label')
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+             rotation_mode="anchor")
+
+    # Loop over data dimensions and create text annotations.
+    fmt = '.2f' if normalize else 'd'
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(j, i, format(cm[i, j], fmt),
+                    ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black")
+    fig.tight_layout()
+    return ax
