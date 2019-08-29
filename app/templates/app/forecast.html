@@ -4,15 +4,17 @@
 
 <h4>{{title}}</h4>
 
+{% if model in regressoes %}
 
 {{data}}
-<p>Preço mais alto: {{alta}}</p>
-<p>Preço mais baixo: {{baixa}}</p>
+<p>Máxima: {{alta}}</p>
+<p>Mínima: {{baixa}}</p>
 <p>Amplitude: {{amp}}%</p>
 
-<img src="#" />
-<img src="#" />
-
+{% else %}
+{{data}}
+<p>Tendência: {{classe}}</p>
+{% endif %}
 
 <script>
 $(document).ready( function () {

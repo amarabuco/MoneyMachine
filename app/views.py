@@ -156,7 +156,7 @@ def candle(request):
     
     
     f1, ax = plt.subplots(figsize = (15,10))
-    candlestick_ohlc(ax, ohlc, width=1, colorup='red', colordown='blue')
+    candlestick_ohlc(ax, ohlc, width=5, colorup='blue', colordown='red')
     plt.grid(True)
     plt.savefig("media/candle.png")
     
@@ -356,15 +356,15 @@ def training(request,model):
     
     #persistence
     if (model == 'VR'):
-        dump(regr, 'app/learners/'+acao+'_VR.joblib')
+        dump(regr_multi, 'app/learners/'+acao+'_VR.joblib')
     elif (model == 'GB'):
-        dump(regr, 'app/learners/'+acao+'_GB.joblib')
-    if (model == 'adr'):    
-        dump(regr, 'app/learners/'+acao+'_ADR.joblib')
+        dump(regr_multi, 'app/learners/'+acao+'_GB.joblib')
+    elif (model == 'adr'):    
+        dump(regr_multi, 'app/learners/'+acao+'_ADR.joblib')
     elif (model == 'ada'): 
-        dump(regr, 'app/learners/'+acao+'_ADAR.joblib')
+        dump(regr_multi, 'app/learners/'+acao+'_ADAR.joblib')
     else:
-        dump(regr_multi, 'app/learners/'+acao+'_NB.joblib')
+        dump(regr_multi, 'app/learners/'+acao+'_NBR.joblib')
     
     
     context = {
@@ -382,7 +382,7 @@ def training(request,model):
     }
     return render(request, 'app/training.html', context )
 
-def forecast(request):
+def forecast(request,model):
     acao = request.session['acao']
     """
     regr = load('app/learners/'+acao+'_NB.joblib')
@@ -400,7 +400,28 @@ def forecast(request):
         }
     """ 
     try:
-        regr = load('app/learners/'+acao+'_NB.joblib')
+        if (model == 'VR'):
+            regr = load('app/learners/'+acao+'_VR.joblib')
+        elif (model == 'GB'):
+            regr = load('app/learners/'+acao+'_GB.joblib')
+        elif (model == 'adr'):    
+            regr = load('app/learners/'+acao+'_ADR.joblib')
+        elif (model == 'ada'): 
+            regr = load('app/learners/'+acao+'_ADAR.joblib')
+        elif (model == 'nbr'):
+            regr = load('app/learners/'+acao+'_NBR.joblib')
+        elif (model == 'knn'):
+            regr = load(regr, 'app/learners/'+acao+'_KNN.joblib')
+        elif (model == 'svc'):    
+            regr = load('app/learners/'+acao+'_SVC.joblib')
+        elif (model == 'ada'): 
+            regr = load('app/learners/'+acao+'_ADA.joblib')
+        elif (model == 'vc'):
+            regr = load('app/learners/'+acao+'_VC.joblib')
+        elif (model == 'neural'):
+            regr = load('app/learners/'+acao+'_neural.joblib')
+        elif (model == 'nbc'):
+            regr = load('app/learners/'+acao+'_NBC.joblib')
         #abertura = 100
         #open = request.POST['Abertura']
         open = request['open']
@@ -544,43 +565,83 @@ def training_log(request,model):
     return render(request, 'app/training_log.html', context )
 
 
-def forecastNB(acao,open,close,high,low,vol,data):
+def get_forecast(acao,date,open,close,high,low,vol,model):
     try:
-        regr = load('app/learners/'+acao+'_NB.joblib')
+        if (model == 'VR'):
+            regr = load('app/learners/'+acao+'_VR.joblib')
+        elif (model == 'GB'):
+            regr = load('app/learners/'+acao+'_GB.joblib')
+        elif (model == 'adr'):    
+            regr = load('app/learners/'+acao+'_ADR.joblib')
+        elif (model == 'ada'): 
+            regr = load('app/learners/'+acao+'_ADAR.joblib')
+        elif (model == 'nbr'):
+            regr = load('app/learners/'+acao+'_NBR.joblib')
+        elif (model == 'knn'):
+            regr = load(regr, 'app/learners/'+acao+'_KNN.joblib')
+        elif (model == 'svc'):    
+            regr = load('app/learners/'+acao+'_SVC.joblib')
+        elif (model == 'ada'): 
+            regr = load('app/learners/'+acao+'_ADA.joblib')
+        elif (model == 'vc'):
+            regr = load('app/learners/'+acao+'_VC.joblib')
+        elif (model == 'neural'):
+            regr = load('app/learners/'+acao+'_neural.joblib')
+        elif (model == 'nbc'):
+            regr = load('app/learners/'+acao+'_NBC.joblib')
         input = pd.DataFrame({'Open':open,'High':high,'Low':low,'Close':close,'Volume':vol}, index=['2019-08-13'])
         y_pred = regr.predict(input)
         data = y_pred[0]
-        title = 'Previsão'
 
     except:
-        title = "É preciso treinar o algoritmo, antes de fazer a previsão"
         data = "-"
     
     return data
 
-def previsao(request):
+def previsao(request,model):
     acao = request.session['acao']
+    regressoes = ['VR','GB','adr','ada','nbr']
     # if this is a POST request we need to process the form data
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
+        
         form = Previsao(request.POST)
         # check whether it's valid:
         if form.is_valid():
             # process the data in form.cleaned_data as required
             # ...
             # redirect to a new URL:
-            data = forecastNB(acao,request.POST['Abertura'],request.POST['Fechamento'],request.POST['Alta'],request.POST['Baixa'],request.POST['Volume'],request.POST['Data'])
+            data = get_forecast(acao,request.POST['Data'],request.POST['Abertura'],request.POST['Fechamento'],request.POST['Alta'],request.POST['Baixa'],request.POST['Volume'],model)
             if (data == '-' ):
                 title = "É preciso treinar o algoritmo, antes de fazer a previsão"
             else:
                 title = 'Previsão'
-            context = {
-                #'data' : data[0].index,
-                'alta' : "{0:.2f}".format(data[0]),
-                'baixa' : "{0:.2f}".format(data[1]),
-                'amp' :  "{0:.2f}".format((data[0]/data[1]-1)*100),
-                'title' : title
-            }
+                if (model in regressoes):
+                    context = {
+                        #'data' : data[0].index,
+                        'model': model,
+                        'alta' : "{0:.2f}".format(data[0]),
+                        'baixa' : "{0:.2f}".format(data[1]),
+                        'amp' :  "{0:.2f}".format((data[0]/data[1]-1)*100),
+                        'title' : title,
+                        'acao': acao,
+                        'regressoes': regressoes
+                    }
+                else:
+                    if (data == 1):
+                        classe = 'Preço vai subir'
+                    if (data == 0):
+                        classe = 'Preço ficará neutro'
+                    else:
+                        classe = 'Preço vai cair'
+                    context = {
+                        #'data' : data,
+                        'model': model,
+                        'classe': classe, 
+                        'title' : title,
+                        'acao': acao,
+                        'regressoes': regressoes
+                    }
             
             return render(request, 'app/forecast.html', context )
             #return render(request, 'app/filtro.html', context )
@@ -593,6 +654,7 @@ def previsao(request):
         
         context = {
             'title':'Dados para previsão',
+            'model': model,
             'form': form,
             'acao': acao
         }
