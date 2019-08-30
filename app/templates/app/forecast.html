@@ -13,7 +13,7 @@
 
 {% else %}
 {{data}}
-<p>Tendência: {{classe}}</p>
+<p>Tendência: {{classe | safe}}</p>
 {% endif %}
 
 <script>

@@ -19,6 +19,7 @@ from sklearn.metrics import mean_absolute_error,mean_squared_error,explained_var
 from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.model_selection import GridSearchCV
 ##regressão
 from sklearn import svm
 from sklearn import linear_model
@@ -33,6 +34,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
 
 #python
 import pickle
@@ -471,6 +473,7 @@ def training_log(request,model):
     elif (model == 'ada'):
         modelo = "Ada Classifier"    
         regr = AdaBoostClassifier(n_estimators=100)
+
     elif (model == 'vc'):
         modelo = "Voting Classifier com LogisticRegression, RandomForestClassifier, GaussianNB" 
         clf1 = KNeighborsClassifier(n_neighbors=5)
@@ -613,7 +616,7 @@ def previsao(request,model):
             # redirect to a new URL:
             data = get_forecast(acao,request.POST['Data'],request.POST['Abertura'],request.POST['Fechamento'],request.POST['Alta'],request.POST['Baixa'],request.POST['Volume'],model)
             if (data == '-' ):
-                title = "É preciso treinar o algoritmo, antes de fazer a previsão"
+                return HttpResponse("É preciso treinar o algoritmo, antes de fazer a previsão")
             else:
                 title = 'Previsão'
                 if (model in regressoes):
@@ -629,11 +632,11 @@ def previsao(request,model):
                     }
                 else:
                     if (data == 1):
-                        classe = 'Preço vai subir'
+                        classe = ' <i class="fas fa-arrow-alt-circle-up"></i> Preço vai subir'
                     if (data == 0):
-                        classe = 'Preço ficará neutro'
+                        classe = '<i class="fas fa-arrow-alt-circle-right"></i> Preço ficará neutro'
                     else:
-                        classe = 'Preço vai cair'
+                        classe = '<i class="fas fa-arrow-alt-circle-down"></i> Preço vai cair'
                     context = {
                         #'data' : data,
                         'model': model,
@@ -736,3 +739,220 @@ def plot_confusion_matrix(y_true, y_pred, classes,
                     color="white" if cm[i, j] > thresh else "black")
     fig.tight_layout()
     return ax
+
+def multir(request,model):
+    bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+    lista = ['B3SA3',        'BBDC4',        'BRAP4',        'BRFS3',        'BRKM5',        'BRML3',        'BTOW3',        'CCRO3',
+        'CIEL3',        'CMIG4',        'CSAN3',        'CSNA3',        'CYRE3',        'ECOR3',        'EGIE3',        'ELET3',
+        'ELET6',        'EMBR3',        'ENBR3',        'EQTL3',        'ESTC3',        'FLRY3',        'GGBR4',        'GOAU4',
+        'GOLL4',       'HYPE3',        'IGTA3',        'KROT3',        'ITSA4',       'ITUB4',        'LAME4',        'LREN3',
+        'MGLU3',       'MRFG3',        'MRVE3',        'MULT3',        'NATU3',       'PCAR4',        'PETR3',       'PETR4',
+        'QUAL3',       'RADL3',        'RENT3',        'SANB11',        'SBSP3',       'TAEE11',        'TIMP3',        'UGPA3',
+        'USIM5',        'VALE3',        'VIVT4',        'WEGE3']
+    
+    resultado = []
+    for item in lista:
+        bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+        dados = bolsa.get_group(item)
+        X = dados[['Open','High', 'Low','Close','Volume']]
+        y = pd.DataFrame({'Alta_real':dados['High'].shift(-1).fillna(method='pad'),'Baixa_real':dados['Low'].shift(-1).fillna(method='pad')})
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False, random_state=0)
+        if (model == 'adr'):
+            modelo = "Automatic Relevance Determination Regression"
+            #regr_multi = MultiOutputRegressor(svm.SVR())
+            regr_multi = MultiOutputRegressor(linear_model.ARDRegression(compute_score=True))
+        elif (model == 'ada'):
+            modelo = "Ada Regressor"
+            regr_multi = MultiOutputRegressor(AdaBoostRegressor(random_state=0, n_estimators=100))
+        elif (model == 'GB'):
+            modelo = "GradientBoostingRegressor"
+            regr_multi =  MultiOutputRegressor(GradientBoostingRegressor(random_state=1, n_estimators=10))
+        else:
+            modelo = "LinerRegression com Bayesian Ridge" 
+            regr_multi = MultiOutputRegressor(linear_model.BayesianRidge())
+        regr_multi = regr_multi.fit(X_train, y_train)
+        y_pred = regr_multi.predict(X_test)
+        #print(item)
+        #print(": ")
+        #print(r2_score(y_test, y_pred))
+        #print(item,": ", r2_score(y_test, y_pred))
+        r = r2_score(y_test, y_pred)
+        resultado.append([item,r])
+    resultado_geral = pd.DataFrame(resultado).to_html()
+    context = {
+        'modelo':  modelo,
+        'resultado': resultado_geral
+    }
+    return render(request, 'app/multi.html', context )
+        
+def multic(request,model):
+    bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+    lista = ['B3SA3',        'BBDC4',        'BRAP4',        'BRFS3',        'BRKM5',        'BRML3',        'BTOW3',        'CCRO3',
+        'CIEL3',        'CMIG4',        'CSAN3',        'CSNA3',        'CYRE3',        'ECOR3',        'EGIE3',        'ELET3',
+        'ELET6',        'EMBR3',        'ENBR3',        'EQTL3',        'ESTC3',        'FLRY3',        'GGBR4',        'GOAU4',
+        'GOLL4',       'HYPE3',        'IGTA3',        'KROT3',        'ITSA4',       'ITUB4',        'LAME4',        'LREN3',
+        'MGLU3',       'MRFG3',        'MRVE3',        'MULT3',        'NATU3',       'PCAR4',        'PETR3',       'PETR4',
+        'QUAL3',       'RADL3',        'RENT3',        'SANB11',        'SBSP3',       'TAEE11',        'TIMP3',        'UGPA3',
+        'USIM5',        'VALE3',        'VIVT4',        'WEGE3']
+    
+    resultado = []
+    for item in lista:
+        bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+        dados = bolsa.get_group(item)
+        dados['var'] = dados['Close'].pct_change()*100
+        dados['move'] = [1 if x>0.01 else -1 if x<-0.01 else 0 for x in dados['Close'].pct_change()]
+        X = dados[['Open','High', 'Low','Close','Volume']]
+        y = dados['move']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False, random_state=0)
+        if (model == 'knn'):
+            modelo = "KNN"
+            regr = KNeighborsClassifier(n_neighbors=5)
+        elif (model == 'svc'):
+            modelo = "Support Vector Classifier"    
+            regr = svm.SVC(gamma='scale')
+        elif (model == 'ada'):
+            modelo = "Ada Classifier"    
+            #regr = AdaBoostClassifier(n_estimators=100)
+            regr = AdaBoostClassifier(n_estimators= 100, base_estimator=DecisionTreeClassifier(max_depth=5),algorithm= 'SAMME', learning_rate= 1)
+        elif (model == 'vc'):
+            modelo = "Voting Classifier com LogisticRegression, RandomForestClassifier, GaussianNB" 
+            clf1 = KNeighborsClassifier(n_neighbors=5)
+            clf2 = RandomForestClassifier(n_estimators=50, random_state=0)
+            clf3 = GaussianNB()
+            regr = VotingClassifier(estimators=[('lr', clf1), ('rf', clf2), ('gnb', clf3)], voting='soft')
+        elif (model == 'neural'):
+            modelo = 'Multi-layer Perceptron classifier'     
+            #regr = MLPClassifier(solver='adam', learning_rate='invscaling', activation="tanh", alpha=1e-5, hidden_layer_sizes=(200,5), random_state=0)
+            regr = MLPClassifier()
+        else:
+            modelo = "Gaussian Naive Bayes" 
+            regr = GaussianNB()
+        regr = regr.fit(X_train, y_train)
+        y_pred = regr.predict(X_test)
+        #print(item)
+        #print(": ")
+        #print(r2_score(y_test, y_pred))
+        #print(item,": ", r2_score(y_test, y_pred))
+        r = accuracy_score(y_test, y_pred)
+        resultado.append([item,r])
+        r = pd.DataFrame(resultado).to_html()
+    context = {
+        'modelo':  modelo,
+        'resultado': r
+    }
+    return render(request, 'app/multi.html', context )
+
+def gridsearch(request,model):
+    acao = request.session['acao'] 
+    bolsa = pd.read_csv("app/data/bolsa.csv", index_col='Date').groupby('Codigo')
+    dados = bolsa.get_group(acao)
+       
+    #training
+    if (model == 'ada'):
+        dados['var'] = dados['Close'].pct_change()*100
+        dados['move'] = [1 if x>0.01 else -1 if x<-0.01 else 0 for x in dados['Close'].pct_change()]
+        X = dados[['Open','High', 'Low','Close','Volume']]
+        y = dados['move']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False, random_state=0)
+        base = dados.head().to_html()
+        modelo = "Ada Classifier"    
+        
+        param_grid = [
+            { 'base_estimator': [DecisionTreeClassifier(max_depth=5)], 'algorithm':['SAMME.R','SAMME'], 'learning_rate':[0.5, 1] , 'n_estimators': [75, 100, 125]}
+            #{'n_estimators': [50, 100, 150, 200], 'base_estimator': [DecisionTreeClassifier(max_depth=1),DecisionTreeClassifier(max_depth=3),DecisionTreeClassifier(max_depth=5)], 'learning_rate':[0.5, 1, 1.5, 2] , 'algorithm':['SAMME']}
+            #{ 'n_estimators': [100], 'base_estimator': [DecisionTreeClassifier(max_depth=5)],'algorithm': 'SAMME', 'learning_rate': 1}
+            ]
+        
+        ada = AdaBoostClassifier(n_estimators=100)
+        regr = GridSearchCV(ada, param_grid)
+        
+        regr.fit(X_train,y_train)    
+    
+        #forecast
+        y_pred = regr.predict(X_test)
+        real = pd.DataFrame(y_test)
+        previsto = pd.DataFrame(y_pred, index=real.index, columns=['previsto'])
+        real.rename(columns={"move": "real"})
+        
+        data = pd.concat([real,previsto],axis=1)
+        data = data.to_html()
+
+        class_names = ['desce','neutro','sobe',]
+        prob = pd.DataFrame(regr.predict_proba(X_test), index=real.index, columns=class_names).to_html()
+        
+        #params
+        params = [regr.cv_results_['params'], regr.cv_results_['mean_test_score'], regr.cv_results_['rank_test_score']]
+        
+        #metrics
+        mae = accuracy_score(y_test, y_pred)
+        mse = precision_score(y_test, y_pred, average='weighted')
+        r2 = recall_score(y_test, y_pred, average='weighted')
+        
+        context = {
+        'title' : 'Treino Classificação',
+        'mae': mae,
+        'mse': mse,
+        'r2': r2,
+        'base': base,
+        'data' : data,
+        'prob': prob,
+        'acao' : acao,
+        'modelo': modelo,
+        'params' : params,
+        'multi' : '-'
+        }
+        return render(request, 'app/training_log.html', context )
+    else:
+        
+        X = dados[['Open','High', 'Low','Close','Volume']]
+        y = dados['High'].shift(-1).fillna(method='pad')
+        Y = pd.DataFrame({'Alta_real':dados['High'].shift(-1).fillna(method='pad'),'Baixa_real':dados['Low'].shift(-1).fillna(method='pad')})
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, shuffle=False, random_state=0)
+        X_train, X_test, Ytrain, Ytest = train_test_split(X, Y, test_size=0.20, shuffle=False, random_state=0)
+        modelo = "LinerRegression com Bayesian Ridge" 
+        regr = MultiOutputRegressor(linear_model.BayesianRidge())
+        
+        param_grid = [
+            {'estimator':[linear_model.BayesianRidge(n_iter= 100,  compute_score=True, fit_intercept=False, alpha_1= 1.e-6),linear_model.BayesianRidge( n_iter= 200, compute_score=True, fit_intercept=False, alpha_1= 1.e-3),
+                           linear_model.BayesianRidge(n_iter= 100, alpha_1= 1.e-1),linear_model.BayesianRidge( n_iter= 200, alpha_1= 1.e-9)]}
+            #{'estimator':[linear_model.BayesianRidge(n_iter= 100, tol=0.001),linear_model.BayesianRidge( n_iter= 200, tol=0.001)]}
+            #{ 'n_iter': [200,300,400,500], 'compute_score':(True, False), 'tol': [0.001,1.e-3]}
+            #{ 'n_iter': [200,300,400,500], 'compute_score':['True','False']}
+            ]
+        
+        regr_multi = GridSearchCV(regr, param_grid)
+        
+        regr_multi.fit(X_train,Ytrain)
+        Y_PRED = regr_multi.predict(X_test)
+        real = pd.DataFrame(Ytest)
+        previsto = pd.DataFrame(Y_PRED, index=Ytest.index, columns=['Alta_prevista','Baixa_prevista'])
+        data = pd.concat([real,previsto],axis=1)
+        data['diferenca_alta'] = data['Alta_real']-data['Alta_prevista']
+        data['diferenca_baixa'] = data['Baixa_real']-data['Baixa_prevista']
+        erro = data['diferenca_alta']
+        data = data.to_html()
+    
+        #params
+        #params = regr.get_params()
+        params = [regr_multi.cv_results_['params'], regr_multi.cv_results_['mean_test_score']]
+    
+        #metrics
+        mae = mean_absolute_error(Ytest, Y_PRED)
+        mse = mean_squared_error(Ytest, Y_PRED)
+        ev = explained_variance_score(Ytest, Y_PRED, multioutput='uniform_average')
+        r2 = r2_score(Ytest, Y_PRED)
+ 
+        context = {
+            'title' : 'Treino Regressão',
+            'mae': mae,
+            'mse': mse,
+            'ev': ev,
+            'r2': r2,
+            #'base': base,
+            'data' : data,
+            'acao' : acao,
+            'modelo': modelo,
+            'params' : params,
+            'multi' : Y_PRED[0]
+        }
+        return render(request, 'app/training.html', context )
